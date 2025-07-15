@@ -1,4 +1,3 @@
-
 export type Industry = "Oil & Gas" | "Power & Utilities" | "Metals" | "Agri-Commodities" | "Financial Services" | "Multi-Commodity";
 export type TradingType = "Physical" | "Financial" | "Both";
 export type OrgSize = "Small/Startup" | "Medium" | "Enterprise";
@@ -7,9 +6,18 @@ export type Priority = "Trading" | "Risk" | "Logistics" | "Settlements" | "Regul
 export type Region = "North America" | "Europe" | "APAC" | "MENA" | "South America" | "Global";
 export type Integration = "ERP" | "Risk Engines" | "Market Data Feeds" | "None" | "Other";
 
+export type TimelineRange = "Within 3 months" | "3-6 months" | "6-12 months" | "12+ months";
+
+export interface Budget {
+  min: number | null;
+  max: number | null;
+}
+
 export interface UserAnswers {
   industry: Industry | null;
   users: number;
+  expectedBudget: Budget;
+  goLiveTimeline: TimelineRange | null;
   tradingType: TradingType | null;
   orgSize: OrgSize | null;
   currentSystem: CurrentSystem | null;
@@ -18,7 +26,7 @@ export interface UserAnswers {
   integrations: Integration[];
 }
 
-export type QuestionType = 'select' | 'multiselect' | 'number' | 'dropdown';
+export type QuestionType = 'select' | 'multiselect' | 'number' | 'dropdown' | 'budget-range';
 
 export interface Question {
   id: keyof UserAnswers;
