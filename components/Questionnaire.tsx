@@ -1,9 +1,9 @@
-
 import React, { useState } from 'react';
-import { UserAnswers, Question } from '../types';
+import { UserAnswers, Question, Budget } from '../types';
 import { QUESTIONS } from '../constants';
 import { ProgressBar } from './common/ProgressBar';
 import { ActionButton } from './common/ActionButton';
+import { RangeSlider } from './common/RangeSlider';
 
 interface QuestionnaireProps {
   onComplete: (answers: UserAnswers) => void;
@@ -12,6 +12,8 @@ interface QuestionnaireProps {
 const initialAnswers: UserAnswers = {
   industry: null,
   users: 50,
+  expectedBudget: { min: 50000, max: 250000 },
+  goLiveTimeline: null,
   tradingType: null,
   orgSize: null,
   currentSystem: null,
@@ -53,27 +55,30 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ onComplete }) => {
   };
   
   const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setAnswers({ ...answers, users: parseInt(e.target.value, 10) });
+    setAnswers({ ...answers, users: parseInt(e.target.value, 10) || 0 });
+  };
+
+  const handleBudgetChange = (newBudget: Budget) => {
+    setAnswers(prev => ({ ...prev, expectedBudget: newBudget }));
   };
 
   const isNextDisabled = (): boolean => {
     const value = answers[currentQuestion.id];
-    if (Array.isArray(value)) {
-        return value.length === 0;
-    }
-
-    // Add a type guard for 'number' to resolve the TS error and correctly handle the number input.
-    if (typeof value === 'number') {
-      return false; // The number slider always has a valid value.
-    }
-
-    if (currentQuestion.type === 'dropdown' && value === null) {
-        return true;
-    }
     
-    // At this point, `value` is a string literal union or null.
-    // The previous check for `''` caused a type error because `''` is not part of the defined types.
-    return value === null;
+    switch (currentQuestion.type) {
+        case 'multiselect':
+            return (value as string[]).length === 0;
+        case 'number':
+            return isNaN(answers.users) || answers.users <= 0;
+        case 'budget-range':
+             const { min, max } = answers.expectedBudget;
+             return min === null || max === null;
+        case 'select':
+        case 'dropdown':
+             return value === null;
+        default:
+            return false;
+    }
   };
   
   const renderInput = () => {
@@ -101,10 +106,28 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ onComplete }) => {
         );
       case 'number':
         return (
-            <div className="mt-6 flex flex-col items-center">
-                <span className="text-4xl font-bold text-ion-blue">{answers.users}</span>
-                <input type="range" min="1" max="1000" step="1" value={answers.users} onChange={handleNumberChange} className="w-full h-2 bg-ion-gray-medium rounded-lg appearance-none cursor-pointer mt-4 accent-ion-blue"/>
+            <div className="mt-6">
+                <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={answers.users > 0 ? answers.users : ''}
+                    onChange={handleNumberChange}
+                    placeholder="e.g., 50"
+                    className="w-full p-4 border-2 border-ion-gray-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-ion-blue"
+                    aria-label={currentQuestion.text}
+                />
             </div>
+        );
+      case 'budget-range':
+        return (
+           <RangeSlider
+            min={0}
+            max={5000000}
+            step={50000}
+            initialValues={answers.expectedBudget}
+            onChange={handleBudgetChange}
+          />
         );
       case 'dropdown':
          return (
@@ -134,7 +157,7 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ onComplete }) => {
             {renderInput()}
         </div>
         <div className="mt-8 flex justify-end">
-            {(currentQuestion.type === 'multiselect' || currentQuestion.type === 'number') && (
+            {(currentQuestion.type === 'multiselect' || currentQuestion.type === 'number' || currentQuestion.type === 'budget-range') && (
                 <ActionButton onClick={handleNext} disabled={isNextDisabled()}>
                     {currentStep === QUESTIONS.length - 1 ? 'Get Recommendation' : 'Next'}
                 </ActionButton>
