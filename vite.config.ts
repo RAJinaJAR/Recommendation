@@ -12,6 +12,11 @@ export default defineConfig(({ mode }) => {
         alias: {
           '@': path.resolve(__dirname, '.'),
         }
-      }
+      },
+      server: {
+          host: '0.0.0.0',
+          port: parseInt(process.env.PORT) || 5173,
+          allowedHosts: ['recommendation-9bxo.onrender.com']
+     }
     };
 });
