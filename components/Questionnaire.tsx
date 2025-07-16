@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { UserAnswers, Question, Budget } from '../types';
 import { QUESTIONS } from '../constants';
 import { ProgressBar } from './common/ProgressBar';
@@ -58,9 +58,9 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ onComplete }) => {
     setAnswers({ ...answers, users: parseInt(e.target.value, 10) || 0 });
   };
 
-  const handleBudgetChange = (newBudget: Budget) => {
+  const handleBudgetChange = useCallback((newBudget: Budget) => {
     setAnswers(prev => ({ ...prev, expectedBudget: newBudget }));
-  };
+  }, []);
 
   const isNextDisabled = (): boolean => {
     const value = answers[currentQuestion.id];
@@ -122,9 +122,9 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ onComplete }) => {
       case 'budget-range':
         return (
            <RangeSlider
-            min={0}
-            max={5000000}
-            step={50000}
+            min={20000}
+            max={2500000}
+            step={10000}
             initialValues={answers.expectedBudget}
             onChange={handleBudgetChange}
           />
