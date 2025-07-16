@@ -42,3 +42,28 @@ export interface Product {
   description: string;
   keyStrengths: string[];
 }
+
+export interface Feedback {
+  rating: 'accurate' | 'inaccurate';
+  comment?: string;
+  // For 'inaccurate' rating
+  userCorrection?: {
+    ideal: string; // product id
+    strong?: string; // product id
+  };
+  priorityWeights?: { [key: string]: number };
+  // For 'accurate' rating
+  generatedSuggestion?: string;
+}
+
+
+export interface RecommendationRecord {
+  id: string;
+  timestamp: string;
+  answers: UserAnswers;
+  recommendations: {
+    ideal: Product;
+    strong: Product;
+  };
+  feedback: Feedback;
+}
