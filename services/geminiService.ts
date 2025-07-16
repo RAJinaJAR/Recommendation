@@ -1,6 +1,19 @@
 import { GoogleGenAI } from "@google/genai";
 import { UserAnswers, Product } from '../types';
 
+const getBudgetString = (budget: UserAnswers['expectedBudget']): string => {
+    let budgetString = 'Not Specified';
+    const { min, max } = budget;
+    if (min !== null && max !== null) {
+      budgetString = `$${min.toLocaleString()} - $${max.toLocaleString()}`;
+    } else if (min !== null) {
+      budgetString = `From $${min.toLocaleString()}`;
+    } else if (max !== null) {
+      budgetString = `Up to $${max.toLocaleString()}`;
+    }
+    return budgetString;
+};
+
 export const generateComparisonText = async (
     answers: UserAnswers,
     idealProduct: Product,
@@ -12,16 +25,6 @@ export const generateComparisonText = async (
     }
 
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
-    let budgetString = 'Not Specified';
-    const { min, max } = answers.expectedBudget;
-    if (min !== null && max !== null) {
-      budgetString = `$${min.toLocaleString()} - $${max.toLocaleString()}`;
-    } else if (min !== null) {
-      budgetString = `From $${min.toLocaleString()}`;
-    } else if (max !== null) {
-      budgetString = `Up to $${max.toLocaleString()}`;
-    }
 
     const prompt = `
         You are an expert marketing assistant for ION Group, a financial software company.
@@ -38,7 +41,7 @@ export const generateComparisonText = async (
         - Industry: ${answers.industry}
         - Organization Size: ${answers.orgSize}
         - Number of Users: ${answers.users}
-        - Expected Budget (Annual USD): ${budgetString}
+        - Expected Budget (Annual USD): ${getBudgetString(answers.expectedBudget)}
         - Desired Go-Live Timeline: ${answers.goLiveTimeline || 'Not Specified'}
         - Key Priorities: ${answers.priorities.join(', ')}
 
@@ -64,5 +67,50 @@ export const generateComparisonText = async (
     } catch (error) {
         console.error("Error generating comparison text:", error);
         return `Based on your focus on ${answers.priorities.join(', ')}, the recommended solution is an excellent choice due to its strengths in ${idealProduct.keyStrengths.join(', ')}. As a strong alternative, you could also consider a platform that excels in ${strongProduct.keyStrengths.join(', ')}, giving you another great option to evaluate.`;
+    }
+};
+
+export const generateAdditionalSuggestion = async (
+    answers: UserAnswers,
+    idealProduct: Product
+): Promise<string> => {
+     if (!process.env.API_KEY) {
+        console.error("API_KEY environment variable not set.");
+        return "As a next step, we recommend preparing a list of key stakeholders from your team who will be involved in the implementation process.";
+    }
+
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+    const prompt = `
+        You are a helpful onboarding assistant for ION Group. A client has just been recommended the "${idealProduct.name}" CTRM solution.
+        
+        Based on their questionnaire answers, provide a single, concise, and actionable tip or "next step" they could take to prepare for implementation or evaluation. Keep it to one friendly and encouraging sentence.
+
+        **Client's Answers:**
+        - Industry: ${answers.industry}
+        - Key Priorities: ${answers.priorities.join(', ')}
+        - Required Integrations: ${answers.integrations.join(', ') || 'None specified'}
+        - Desired Go-Live Timeline: ${answers.goLiveTimeline || 'Not Specified'}
+        
+        **Examples of good suggestions:**
+        - If they require 'ERP' integration: "To ensure a smooth start, you could begin gathering the API documentation for your existing ERP system."
+        - If their timeline is 'Within 3 months': "Given your fast-paced timeline, a great next step is to identify the key project stakeholders from your team."
+        - If 'Risk' is a high priority: "To get the most out of your evaluation, we suggest preparing a few key risk scenarios you'd like to model."
+
+        Now, generate a new, unique suggestion for this specific client.
+    `;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt,
+             config: {
+                temperature: 0.8, // Add some creativity to the suggestions
+            }
+        });
+        return response.text;
+    } catch (error) {
+        console.error("Error generating additional suggestion:", error);
+        return "As a next step, we recommend preparing a list of key stakeholders from your team who will be involved in the implementation process.";
     }
 };
